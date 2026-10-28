@@ -1,0 +1,6 @@
+/.lake/
+/data/
+/web/dist/
+/web/dist-*/
+*.olean
+/out/
