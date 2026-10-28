@@ -9,6 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install wasmtime 27.0.0
+        run: |
+          curl -fsSL -o /tmp/wasmtime.tar.xz \
+            https://github.com/bytecodealliance/wasmtime/releases/download/v27.0.0/wasmtime-v27.0.0-x86_64-linux.tar.xz
+          tar -C /tmp -xJf /tmp/wasmtime.tar.xz
+          sudo cp /tmp/wasmtime-v27.0.0-x86_64-linux/wasmtime /usr/local/bin/wasmtime
+          wasmtime --version
       - uses: leanprover/lean-action@v1
         with:
           test: true

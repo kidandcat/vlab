@@ -29,7 +29,7 @@ private def random80 : IO Nat := do
     n := n * 256 + (bytes[i]!).toNat
   return n
 
-private def unixMillis : IO Nat := do
+def nowMillis : IO Nat := do
   let ts ← Std.Time.Timestamp.now
   let ms := ts.toMillisecondsSinceUnixEpoch.val
   if ms < 0 then
@@ -38,7 +38,7 @@ private def unixMillis : IO Nat := do
     return ms.toNat
 
 def wallClock : Clock where
-  millis := unixMillis
+  millis := nowMillis
   entropy := random80
 
 structure Store where

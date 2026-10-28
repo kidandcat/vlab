@@ -132,6 +132,42 @@ HEALTH2=$(curl -sf "http://127.0.0.1:$PORT/health") || fail "health after restar
 python3 -c 'import json,sys; h=json.loads(sys.argv[1]); assert h["boots"]==2 and h["notes"]==2, h' "$HEALTH2"
 AGAIN=$(curl -sf "http://127.0.0.1:$PORT/api/notes/$ID") || fail "note after restart"
 python3 -c 'import json,sys; assert json.loads(sys.argv[1])["text"]=="hola \"cairn\""' "$AGAIN"
+python3 - <<PY || fail "sandbox"
+import json, urllib.request
+base = "http://127.0.0.1:$PORT"
+def call(method, path, body=None):
+    data = body.encode() if body is not None else None
+    req = urllib.request.Request(base + path, data=data, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=10) as res:
+            return res.status, res.read().decode()
+    except urllib.error.HTTPError as e:
+        return e.code, e.read().decode()
+st, created = call("POST", "/api/sandboxes", "fuel 1000\nmemory 131072\ncalls 4\nfs-read\n")
+assert st == 200, created
+a = json.loads(created)["id"]
+st, created = call("POST", "/api/sandboxes", "fuel 50\nmemory 131072\ncalls 4\n")
+assert st == 200, created
+b = json.loads(created)["id"]
+assert a != b
+st, add = call("POST", f"/api/sandboxes/{a}/exec", "example add")
+assert st == 200 and '"value":"42"' in add, add
+st, oob = call("POST", f"/api/sandboxes/{a}/exec", "example oob")
+assert st == 200 and "bounds" in oob, oob
+st, loop = call("POST", f"/api/sandboxes/{b}/exec", "example loop")
+assert st == 200 and "outOfFuel" in loop, loop
+st, host = call("POST", f"/api/sandboxes/{b}/exec", "example host")
+assert st == 200 and "deny fs_read" in host, host
+st, audit = call("GET", f"/api/sandboxes/{b}/audit")
+assert st == 200 and "deny fs_read" in audit and "perform_allow_fsRead" in audit, audit
+st, _ = call("DELETE", f"/api/sandboxes/{a}")
+assert st == 200
+st, again = call("POST", f"/api/sandboxes/{a}/exec", "example add")
+assert st == 404, again
+st, still = call("GET", f"/api/sandboxes/{b}/audit")
+assert "deny fs_read" in still
+print(f"sandbox ok a={a} b={b}")
+PY
 echo "e2e ok boots=2 notes=2 id=$ID"
 echo "----- timings -----"
 python3 - <<PY

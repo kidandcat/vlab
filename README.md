@@ -10,11 +10,11 @@ El repositorio es público: [kidandcat/vlab](https://github.com/kidandcat/vlab).
 | --- | --- | --- |
 | 0 | Esqueleto: servidor, cairn, front uvl | este árbol |
 | 1 | Laboratorio de funciones | pendiente |
-| 3 | Sandbox Wasm verificado | foco principal, pendiente |
+| 3 | Sandbox Wasm verificado | este árbol |
 
-El mini SO RISC-V queda descartado: no forma parte de este repositorio.
+El mini SO RISC-V queda descartado: no forma parte de este repositorio. El modelo de amenazas del sandbox está en [docs/modelo-de-amenazas.md](docs/modelo-de-amenazas.md). El informe del hito 3 está en [docs/hito-3.md](docs/hito-3.md). Lo que no se promete está en [docs/siguientes-pasos.md](docs/siguientes-pasos.md).
 
-El informe del hito 0 está en [docs/hito-0.md](docs/hito-0.md): qué se ejecutó de punta a punta, qué está demostrado y qué solo probado, y los números medidos.
+El informe del hito 0 está en [docs/hito-0.md](docs/hito-0.md).
 
 ## Dependencias fijadas
 
@@ -54,7 +54,18 @@ curl -s -X POST http://127.0.0.1:8080/api/notes \
 curl -s http://127.0.0.1:8080/api/notes
 ```
 
-El cuerpo es un objeto con un solo campo `text` (como mucho 4000 caracteres). El cuerpo HTTP no pasa de 64 KiB. La lista devuelve como mucho 50 notas, de la más antigua a la más nueva: ese es el orden de la colección.
+El cuerpo de una nota es un objeto con un solo campo `text` (como mucho 4000 caracteres). El cuerpo HTTP no pasa de 64 KiB. La lista devuelve como mucho 50 notas, de la más antigua a la más nueva.
+
+Un sandbox se crea con un texto de concesión, no con JSON:
+
+```bash
+curl -s -X POST http://127.0.0.1:8080/api/sandboxes --data $'fuel 1000\nmemory 131072\ncalls 4\nfs-read\n'
+curl -s -X POST http://127.0.0.1:8080/api/sandboxes/ID/exec --data 'example add'
+curl -s http://127.0.0.1:8080/api/sandboxes/ID/audit
+curl -s -X DELETE http://127.0.0.1:8080/api/sandboxes/ID
+```
+
+`example` es `add`, `oob`, `loop` o `host`. `wasm HEX` manda un módulo propio, en hexadecimal, de como mucho 16 KiB.
 
 ## Front
 
@@ -68,13 +79,16 @@ REQUIRE_FRONT=1 bash scripts/e2e.sh
 
 `web/build.sh` está adaptado de `web/build.sh` de uvl en la revisión fijada. El runtime de Lean e `Init` se compilan a Wasm una vez y quedan en `.lake/build/wasm`. La salida es `web/dist/` (`index.html`, `uvl.js`, `uvl.wasm`, `uvl-web.js`).
 
-Abre `http://127.0.0.1:8080/` con el servidor en marcha. El lienzo lo dibuja uvl (título, botón, gráfica). Las notas viven en cairn y se ven por el API; el hito 1 las une en la misma pantalla.
+Abre `http://127.0.0.1:8080/` con el servidor en marcha. El lienzo uvl ejecuta el intérprete en los botones `oob`, `bucle` y `denegar`. El panel de al lado crea sandboxes en el servidor.
 
 ## Qué guarda cairn
 
 Un directorio, un fichero `shard-0.cairn`.
 
 - La colección `notes`: id `Ulid`, versión, texto.
+- La colección `sandboxes` y las claves `spec:<id>` / `alive:<id>`.
+- La colección `aud-<id>`: una línea por intento de host. No se borra al destruir el sandbox.
 - La clave `meta:boots`: cuántas veces se ha abierto el directorio.
+- El directorio `sandboxes/<id>/`: ficheros del sandbox. Se borra al destruirlo.
 
 Al abrir, el generador de ids se siembra con el mayor id ya guardado, para no emitir uno que ordene antes. Si la colección pasa de 100000 páginas de 64, el proceso se niega a arrancar en vez de adivinar.
