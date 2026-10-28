@@ -40,6 +40,8 @@ jobs:
         run: |
           source "$HOME/emsdk/emsdk_env.sh"
           web/build.sh
+      - name: Build the native server
+        run: lake build vlab-server
       - name: Node smoke and HTTP serving of the wasm
         run: |
           node web/smoke-node.cjs web/dist
