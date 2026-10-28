@@ -20,7 +20,7 @@ En esta máquina (4 vCPU, Xeon a 2400 MHz, ext4 en `/dev/vdc`), con wasmtime 27.
 
 - `lake test` imprime `vlab tests ok`. Ahí entran el parser de la concesión, `../` rechazado, `a/../b` queda en `b`, el módulo `add` devuelve 42, el acceso fuera de memoria es `bounds`, el bucle con combustible 30 es `outOfFuel`, `fs_read` sin concesión deja el directorio virtual vacío y anota `deny fs_read`, y `..` con concesión de lectura es `escape`.
 - El mismo `add.wasm` bajo wasmtime `--invoke main` imprime `42`. El `oob.wasm` termina con código distinto de 0. El `loop.wasm` con `timeout 2 wasmtime` termina con código 124 (el límite del `timeout`, no una trampa de wasmtime). El nuestro para por combustible.
-- `scripts/e2e.sh` crea dos sandboxes, ejecuta `add` (valor 42), `oob` (`bounds`), `loop` (`outOfFuel`) y `host` (`deny fs_read` en la auditoría, con el nombre `perform_allow_fsRead`). Destruir el primero hace que otro `exec` responda 404. La auditoría del segundo sigue. Imprimió `sandbox ok`.
+- `scripts/e2e.sh` crea dos sandboxes, ejecuta `add` (valor 42), `oob` (`bounds`), `loop` (`outOfFuel`) y `host` (`deny fs_read` en la auditoría, citando `fsReadOk_grant`). La trampa `bounds` queda en cairn con `load?_inRange`, y `outOfFuel` con `evalList_zero`. Destruir el primero hace que otro `exec` responda 404. La auditoría del segundo sigue.
 - `node web/smoke-node.cjs` imprimió `wasm smoke ok 480x360 ink=30302`. El clic en `oob` deja `bounds` en el árbol de accesibilidad. El módulo pesa 2,2 MiB.
 
 ## Demostrado
@@ -34,6 +34,8 @@ Sin `sorry` en este código. Los teoremas que compilan son:
 - `fsReadOk_grant`, `fsWriteOk_grant`, `netOk_grant`, `clockOk_grant`, `randomOk_grant`: el booleano de admisión es verdadero solo si esa capacidad está en la lista.
 - `deny_keeps`: construir una denegación no cambia el sistema de ficheros virtual, el cursor de entropía ni las concesiones.
 - `evalList_zero`: con combustible 0 el evaluador responde `outOfFuel` y no ejecuta una instrucción.
+
+Las líneas de auditoría citan esos nombres (`fsReadOk_grant`, no un `perform_allow_*` que no existe). `tag_known` dice que cada cita sale de esa lista, y el archivo de tests hace `#check` de cada declaración. Una trampa (`bounds`, `outOfFuel`, `escape`, y el resto) se escribe en cairn además de las llamadas al host. `scripts/check-axioms.sh` imprime `#print axioms` de estos teoremas y falla si aparece `sorryAx` o un axioma distinto de `propext`, `Classical.choice` y `Quot.sound`.
 
 El evaluador está definido por recursión sobre el combustible, así que una ejecución termina. Cada instrucción gasta una unidad. Eso es la definición, no un teorema aparte que cuente los pasos de un programa arbitrario.
 

@@ -72,7 +72,7 @@ def denyMod : Module := {
 }
 
 def describe : Halt → String
-  | .trap .bounds _ => "trampa bounds · load_inRange"
+  | .trap .bounds _ => "trampa bounds · load?_inRange"
   | .trap .outOfFuel _ => "trampa outOfFuel · evalList_zero"
   | .trap .escape _ => "trampa escape · normalize_safe"
   | .ok st | .ret st =>
@@ -106,7 +106,7 @@ def view (m : Model) : UI.Widget Msg := ui! pad 16:
           button "denegar" (onTap := some Msg.deny)
     card:
       col (gap := 4) (align := .stretch):
-        text "load_inRange"
+        text "load?_inRange"
         text "normalize_safe"
         text "fsReadOk_grant"
         text "evalList_zero"

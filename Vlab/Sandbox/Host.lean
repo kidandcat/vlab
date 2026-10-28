@@ -4,10 +4,12 @@ virtual filesystem or the scripted network table. An admission has the
 capability in the grant list: the branch that builds `.allow` checks it.
 -/
 
+import Vlab.Sandbox.Cited
 import Vlab.Sandbox.Path
 import Vlab.Wasm.Ast
 import Vlab.Wasm.Mem
 
+open Vlab.Sandbox.Cited
 open Vlab.Wasm
 open Vlab.Wasm.Mem
 
@@ -124,9 +126,9 @@ def perform (env : HostEnv) (op : HostOp) (args : List Val) (mem : Array UInt8) 
     match op with
     | .clock =>
       if clockOk env.grants then
-        .allow (note env "allow clock theorem=perform_allow_clock") mem (.i64 env.clock)
+        .allow (note env (withTheorem "allow clock" .clockOk_grant)) mem (.i64 env.clock)
       else
-        deny env "deny clock theorem=perform_allow_clock"
+        deny env (withTheorem "deny clock" .clockOk_grant)
     | .random =>
       match four args with
       | none => .trap .typeError env
@@ -144,17 +146,17 @@ def perform (env : HostEnv) (op : HostOp) (args : List Val) (mem : Array UInt8) 
             | none => .trap .bounds env
             | some mem =>
               let env := { env with entropyAt := env.entropyAt + n }
-              .allow (note env "allow random theorem=perform_allow_random") mem
+              .allow (note env (withTheorem "allow random" .randomOk_grant)) mem
                 (.i32 (UInt32.ofNat n))
         else
-          deny env "deny random theorem=perform_allow_random"
+          deny env (withTheorem "deny random" .randomOk_grant)
     | .fsRead =>
       match four args with
       | none => .trap .typeError env
       | some (paddr, plen, buf, blen) =>
         match pathOf mem paddr plen with
         | .error .bounds => .trap .bounds env
-        | .error .escape => .trap .escape (note env "escape fs_read theorem=normalize_safe")
+        | .error .escape => .trap .escape (note env (withTheorem "escape fs_read" .normalize_safe))
         | .error t => .trap t env
         | .ok segs =>
           if fsReadOk env.grants segs then
@@ -164,17 +166,17 @@ def perform (env : HostEnv) (op : HostOp) (args : List Val) (mem : Array UInt8) 
             match store? mem buf bs with
             | none => .trap .bounds env
             | some mem =>
-              .allow (note env "allow fs_read theorem=perform_allow_fsRead") mem
+              .allow (note env (withTheorem "allow fs_read" .fsReadOk_grant)) mem
                 (.i32 (UInt32.ofNat n))
           else
-            deny env "deny fs_read theorem=perform_allow_fsRead"
+            deny env (withTheorem "deny fs_read" .fsReadOk_grant)
     | .fsWrite =>
       match four args with
       | none => .trap .typeError env
       | some (paddr, plen, buf, blen) =>
         match pathOf mem paddr plen with
         | .error .bounds => .trap .bounds env
-        | .error .escape => .trap .escape (note env "escape fs_write theorem=normalize_safe")
+        | .error .escape => .trap .escape (note env (withTheorem "escape fs_write" .normalize_safe))
         | .error t => .trap t env
         | .ok segs =>
           if fsWriteOk env.grants segs then
@@ -187,12 +189,12 @@ def perform (env : HostEnv) (op : HostOp) (args : List Val) (mem : Array UInt8) 
               let next := old - prev + data.size
               if next ≤ env.vfsQuota then
                 let env := { env with vfs := writeVfs env.vfs segs data }
-                .allow (note env "allow fs_write theorem=perform_allow_fsWrite") mem
+                .allow (note env (withTheorem "allow fs_write" .fsWriteOk_grant)) mem
                   (.i32 (UInt32.ofNat data.size))
               else
-                deny env "deny fs_write quota theorem=perform_allow_fsWrite"
+                deny env "deny fs_write quota"
           else
-            deny env "deny fs_write theorem=perform_allow_fsWrite"
+            deny env (withTheorem "deny fs_write" .fsWriteOk_grant)
     | .netSend =>
       match four args with
       | none => .trap .typeError env
@@ -201,7 +203,7 @@ def perform (env : HostEnv) (op : HostOp) (args : List Val) (mem : Array UInt8) 
         -- net uses host, port and ignores the payload length beyond the pointer.
         match pathOf mem haddr hlen with
         | .error .bounds => .trap .bounds env
-        | .error .escape => .trap .escape (note env "escape net theorem=normalize_safe")
+        | .error .escape => .trap .escape (note env (withTheorem "escape net" .normalize_safe))
         | .error t => .trap t env
         | .ok segs =>
           let host := String.intercalate "." segs
@@ -212,10 +214,10 @@ def perform (env : HostEnv) (op : HostOp) (args : List Val) (mem : Array UInt8) 
             match store? mem buf bs with
             | none => .trap .bounds env
             | some mem =>
-              .allow (note env s!"allow net {host}:{port} theorem=perform_allow_net") mem
+              .allow (note env (withTheorem s!"allow net {host}:{port}" .netOk_grant)) mem
                 (.i32 (UInt32.ofNat n))
           else
-            deny env s!"deny net {host}:{port} theorem=perform_allow_net"
+            deny env (withTheorem s!"deny net {host}:{port}" .netOk_grant)
 
 theorem note_keeps (env : HostEnv) (line : String) :
     (note env line).vfs = env.vfs ∧ (note env line).entropyAt = env.entropyAt ∧

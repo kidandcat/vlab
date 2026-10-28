@@ -248,7 +248,7 @@ def execSandbox (app : App) (id body : String) : IO (Status × String) := do
     let st := match halt with
       | .ok st | .ret st | .trap _ st | .br _ st => st
     saveVfs box.dir st.host.vfs
-    for line in st.host.audit.reverse do
+    for line in haltAudit halt do
       let eid ← app.store.ids.next
       let _ ← Cairn.collInsert app.store.shards (auditName id) eid (.str line)
     return (.ok, summarize halt)

@@ -1,3 +1,4 @@
+import Vlab.Sandbox.Cited
 import Vlab.Sandbox.Host
 import Vlab.Sandbox.Service
 import Vlab.Wasm.Ast
@@ -137,6 +138,26 @@ def testSpec : IO Unit := do
   | .error _ => pure ()
   | .ok _ => throw (IO.userError "fuel 0 accepted")
 
+def linesOf (h : Halt) : List String :=
+  Vlab.Sandbox.Service.haltAudit h
+
+def testAuditNames : IO Unit := do
+  let add ← decodeHex addHex
+  let oob ← decodeHex oobHex
+  let loop ← decodeHex loopHex
+  let host ← decodeHex hostHex
+  let lines :=
+    linesOf (runModule 20 add emptyEnv 0) ++
+    linesOf (runModule 20 oob emptyEnv (65536 * 2)) ++
+    linesOf (runModule 30 loop emptyEnv 0) ++
+    linesOf (runModule 20 host emptyEnv 0)
+  unless Vlab.Sandbox.Cited.namesKnown lines do
+    throw (IO.userError s!"audit cites an unknown theorem: {lines}")
+  expect "trap bounds recorded" (lines.any (·.startsWith "trap bounds theorem=load?_inRange"))
+  expect "trap fuel recorded" (lines.any (·.startsWith "trap outOfFuel theorem=evalList_zero"))
+  expect "deny cites grant" (lines.any (·.contains "theorem=fsReadOk_grant"))
+  expect "no invented name" (!lines.any (·.contains "perform_allow"))
+
 def testWasm : IO Unit := do
   testNormalize
   testSpec
@@ -147,3 +168,20 @@ def testWasm : IO Unit := do
   testAllowFs
   testEscape
   testDiff
+  testAuditNames
+
+-- Each string `Cited.tag` can produce is `#check`ed here. `tag_known` says
+-- those are the only strings. A missing declaration fails this file.
+#check @Vlab.Sandbox.Host.fsReadOk_grant
+#check @Vlab.Sandbox.Host.fsWriteOk_grant
+#check @Vlab.Sandbox.Host.netOk_grant
+#check @Vlab.Sandbox.Host.clockOk_grant
+#check @Vlab.Sandbox.Host.randomOk_grant
+#check @Vlab.Sandbox.Path.normalize_safe
+#check @Vlab.Wasm.Mem.load?_inRange
+#check @Vlab.Wasm.Mem.store?_size
+#check @Vlab.Wasm.Mem.grow_le
+#check @Vlab.Sandbox.Host.deny_keeps
+#check @Vlab.Sandbox.Host.note_keeps
+#check @Vlab.Wasm.evalList_zero
+#check @Vlab.Sandbox.Cited.tag_known
