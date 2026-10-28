@@ -5,8 +5,8 @@ No está desplegado. El `Dockerfile` construye el binario nativo y deja el proce
 ## Qué hace la imagen
 
 - Ubuntu 24.04, elan, toolchain `v4.35.0`.
-- `lake update` y `lake build leanlab-server` con las revisiones fijadas de cairn y uvl.
-- Usuario `leanlab` (uid 10001), sin shell de login.
+- `lake update` y `lake build vlab-server` con las revisiones fijadas de cairn y uvl.
+- Usuario `vlab` (uid 10001), sin shell de login.
 - El proceso escucha en `0.0.0.0:8080` solo dentro de la red del contenedor. En la máquina, el binario sigue en `127.0.0.1` si no se pasa `--host`.
 
 El front Wasm no se compila en la imagen. Si el contexto de build trae `web/dist/`, se copia y el servidor lo sirve. Si no, `GET /` dice que falta el front y el API sigue respondiendo.
@@ -16,8 +16,8 @@ El front Wasm no se compila en la imagen. Si el contexto de build trae `web/dist
 Hace falta un daemon de Docker. En el entorno donde se escribió el hito 0 no había Docker, así que esta imagen no se ha construido ni ejecutado aquí.
 
 ```bash
-docker build -t leanlab:dev .
-docker run --rm -p 127.0.0.1:8080:8080 -v leanlab-data:/data leanlab:dev
+docker build -t vlab:dev .
+docker run --rm -p 127.0.0.1:8080:8080 -v vlab-data:/data vlab:dev
 ```
 
 El puerto publicado queda en el loopback del host. No abras `0.0.0.0` en una máquina alcanzable desde fuera.

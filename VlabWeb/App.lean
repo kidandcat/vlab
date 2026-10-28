@@ -6,7 +6,7 @@ runtime. The button is a tap target so a headless smoke test can click it.
 The chart is drawn by uvl; the server stores notes in cairn separately.
 -/
 
-namespace LeanlabWeb.App
+namespace VlabWeb.App
 open UVL UI
 
 inductive Msg where
@@ -23,7 +23,7 @@ def update : Msg → Model → Model
 def view (m : Model) : UI.Widget Msg := ui! pad 20:
   col (gap := 14) (align := .stretch):
     row (gap := 12):
-      text "leanlab" (size := 4) (color := Color.hex 0x0D47A1)
+      text "vlab" (size := 4) (color := Color.hex 0x0D47A1)
       spacer
       chip "cairn + uvl"
     card:
@@ -41,10 +41,10 @@ def app : App Model Msg where
   update
   view
   background := Color.hex 0xF4F6F8
-  title := "leanlab"
+  title := "vlab"
 
-end LeanlabWeb.App
+end VlabWeb.App
 
 @[export uvl_web_make]
-def LeanlabWeb.App.make (w h : UInt32) : UVL.AnyRuntime :=
-  .start LeanlabWeb.App.app w h
+def VlabWeb.App.make (w h : UInt32) : UVL.AnyRuntime :=
+  .start VlabWeb.App.app w h

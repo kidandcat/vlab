@@ -1,10 +1,10 @@
-import Leanlab.Http
-import Leanlab.Json
-import Leanlab.Store
+import Vlab.Http
+import Vlab.Json
+import Vlab.Store
 
-open Leanlab.Http
-open Leanlab.Json
-open Leanlab.Store
+open Vlab.Http
+open Vlab.Json
+open Vlab.Store
 
 private def expect (name : String) (ok : Bool) : IO Unit := do
   unless ok do
@@ -53,7 +53,7 @@ private def testIds : IO Unit := do
   expect "width" ((toHex zero).length == 32)
 
 private def testStore : IO Unit := do
-  let dir : System.FilePath := s!"/tmp/leanlab-test-{← IO.monoNanosNow}"
+  let dir : System.FilePath := s!"/tmp/vlab-test-{← IO.monoNanosNow}"
   try
     let s ← openAt dir
     expect "boot 1" (s.boots == 1)
@@ -89,8 +89,8 @@ def main : IO UInt32 := do
     testRoutes
     testIds
     testStore
-    IO.println "leanlab tests ok"
+    IO.println "vlab tests ok"
     return 0
   catch e =>
-    IO.eprintln s!"leanlab tests failed: {e}"
+    IO.eprintln s!"vlab tests failed: {e}"
     return 1

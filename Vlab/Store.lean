@@ -15,7 +15,7 @@ import Std.Time
 
 open Cairn
 
-namespace Leanlab.Store
+namespace Vlab.Store
 
 def notesName : String := "notes"
 
@@ -121,4 +121,4 @@ def Store.getNote (s : Store) (id : Ulid) : IO (Option Note) := do
   | some _ => return none
   | none => return none
 
-end Leanlab.Store
+end Vlab.Store

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>leanlab</title>
+  <title>vlab</title>
   <style>
     html, body { margin: 0; height: 100%; background: #f4f6f8; font: 14px system-ui, sans-serif; color: #1a1a1a; }
     main { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px; }
@@ -28,7 +28,7 @@
       const canvas = document.getElementById('app');
       if (size) { canvas.style.width = `${size[1]}px`; canvas.style.height = `${size[2]}px`; }
       window.uvl = await startUVL(canvas, createUVL, { backend });
-      status.textContent = `leanlab · Lean → WebAssembly · ${window.uvl.state.backend}`;
+      status.textContent = `vlab · Lean → WebAssembly · ${window.uvl.state.backend}`;
     } catch (e) {
       status.textContent = `error: ${e.message}`;
       throw e;

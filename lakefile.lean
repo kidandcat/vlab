@@ -1,7 +1,7 @@
 import Lake
 open Lake DSL
 
-package leanlab where
+package vlab where
   leanOptions := #[
     ⟨`autoImplicit, false⟩,
     ⟨`relaxedAutoImplicit, false⟩
@@ -15,16 +15,16 @@ require cairn from git "https://github.com/kidandcat/cairn.git" @ "543684716dde4
 require uvl from git "https://github.com/kidandcat/uvl.git" @ "ff2f323df25f2e260c19a28d220c3bf507b033df"
 
 @[default_target]
-lean_lib Leanlab
+lean_lib Vlab
 
 @[default_target]
-lean_exe «leanlab-server» where
-  root := `LeanlabServer
+lean_exe «vlab-server» where
+  root := `VlabServer
 
 /-- Browser UI. Built to WebAssembly by `web/build.sh`; not a native default. -/
-lean_lib LeanlabWeb where
-  globs := #[.one `LeanlabWeb.App]
+lean_lib VlabWeb where
+  globs := #[.one `VlabWeb.App]
 
 @[test_driver]
-lean_exe «leanlab-tests» where
+lean_exe «vlab-tests» where
   root := `Tests.Main

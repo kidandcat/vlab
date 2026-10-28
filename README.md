@@ -1,8 +1,8 @@
-# leanlab
+# vlab
 
 Servicio en Lean 4 (toolchain `v4.35.0`, la misma que [cairn](https://github.com/kidandcat/cairn) y [uvl](https://github.com/kidandcat/uvl)). El proceso habla HTTP/1.1 con `Std.Http.Server`, guarda en un `ShardSet` de cairn y sirve un front compilado con uvl a WebAssembly.
 
-El repositorio es privado. No hay despliegue a producción: hay un `Dockerfile` y [docs/despliegue.md](docs/despliegue.md).
+El repositorio es público: [kidandcat/vlab](https://github.com/kidandcat/vlab). No lleva secretos. No hay despliegue a producción: hay un `Dockerfile` y [docs/despliegue.md](docs/despliegue.md).
 
 ## Hitos
 
@@ -10,7 +10,9 @@ El repositorio es privado. No hay despliegue a producción: hay un `Dockerfile` 
 | --- | --- | --- |
 | 0 | Esqueleto: servidor, cairn, front uvl | este árbol |
 | 1 | Laboratorio de funciones | pendiente |
-| 2 | Sandbox Wasm verificado | pendiente |
+| 3 | Sandbox Wasm verificado | foco principal, pendiente |
+
+El mini SO RISC-V queda descartado: no forma parte de este repositorio.
 
 El informe del hito 0 está en [docs/hito-0.md](docs/hito-0.md): qué se ejecutó de punta a punta, qué está demostrado y qué solo probado, y los números medidos.
 
@@ -34,10 +36,10 @@ lake test
 bash scripts/e2e.sh
 ```
 
-El binario es `.lake/build/bin/leanlab-server`.
+El binario es `.lake/build/bin/vlab-server`.
 
 ```bash
-.lake/build/bin/leanlab-server --data data --host 127.0.0.1 --port 8080 --static web/dist
+.lake/build/bin/vlab-server --data data --host 127.0.0.1 --port 8080 --static web/dist
 ```
 
 El host por defecto es el loopback. `--host` solo acepta una IPv4. Cada nota es un commit de cairn con `sync` antes de la respuesta.

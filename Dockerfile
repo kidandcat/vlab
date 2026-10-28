@@ -13,15 +13,15 @@ ENV PATH="/root/.elan/bin:${PATH}"
 
 WORKDIR /src
 COPY . .
-RUN lake update && lake build leanlab-server leanlab-tests \
+RUN lake update && lake build vlab-server vlab-tests \
   && if [ -d web/dist ]; then echo "front included"; else echo "front not in the build context"; fi
 
-RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin leanlab \
+RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin vlab \
   && mkdir -p /data \
-  && chown -R leanlab:leanlab /data /src
+  && chown -R vlab:vlab /data /src
 
-USER leanlab
+USER vlab
 EXPOSE 8080
 VOLUME ["/data"]
-ENTRYPOINT ["/src/.lake/build/bin/leanlab-server"]
+ENTRYPOINT ["/src/.lake/build/bin/vlab-server"]
 CMD ["--host", "0.0.0.0", "--port", "8080", "--data", "/data", "--static", "/src/web/dist"]

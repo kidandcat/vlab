@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the leanlab browser UI (WebAssembly + WebGPU).
+# Build the vlab browser UI (WebAssembly + WebGPU).
 #
 # Adapted from uvl `web/build.sh` at the revision pinned in lakefile.lean.
 # The Lean runtime and `Init` are compiled once per toolchain and cached under
@@ -13,9 +13,9 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-MODULE=${1:-LeanlabWeb.App}
+MODULE=${1:-VlabWeb.App}
 # Lake prefixes the initializer with the package name: `initialize_<pkg>_<Module>`.
-INIT_SYM=${2:-initialize_leanlab_LeanlabWeb_App}
+INIT_SYM=${2:-initialize_vlab_VlabWeb_App}
 # Two jobs by default: a wide emcc of Init can exhaust a small VM.
 JOBS=${JOBS:-2}
 CORE_EXTRA=${CORE_EXTRA:-Std.Tactic.BVDecide.Bitblast.BoolExpr.Basic Std.Tactic.BVDecide.Bitblast.BVExpr.Basic}
@@ -176,7 +176,7 @@ STUBS=$APP/gen_stubs.c
 if ! "${LINK[@]}" 2> "$APP/link1.log"; then
   grep -o 'undefined symbol: [A-Za-z0-9_]*' "$APP/link1.log" | cut -d' ' -f3 | sort -u > "$APP/undef" || true
   if [ ! -s "$APP/undef" ]; then cat "$APP/link1.log" >&2; exit 1; fi
-  # `initialize_Lean_` is the compiler package. `initialize_leanlab_` is this app
+  # `initialize_Lean_` is the compiler package. `initialize_vlab_` is this app
   # and must not be stubbed.
   BAD=$(grep -v -E '^(l_Lean_|l_Std_|initialize_Lean_|initialize_Lean$|initialize_Std_|initialize_Std$)' "$APP/undef" || true)
   if [ -n "$BAD" ]; then

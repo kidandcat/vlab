@@ -20,7 +20,7 @@ function fail(msg) {
   const stepped = m._uvl_step(0, 0, 16);
   if (stepped !== 1) fail(`expected a first frame, got ${stepped}`);
   const before = m.UTF8ToString(m._uvl_semantics());
-  if (!before.includes('leanlab')) fail(`semantics missing leanlab:\n${before}`);
+  if (!before.includes('vlab')) fail(`semantics missing vlab:\n${before}`);
   if (!before.includes('pings 0')) fail(`semantics missing pings 0:\n${before}`);
   const center = m._uvl_target_center(0);
   if (!center) fail('no tap target');

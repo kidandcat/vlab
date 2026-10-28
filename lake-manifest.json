@@ -21,6 +21,6 @@
    "inputRev": "543684716dde412bb803702efdf6e6406f435c9d",
    "inherited": false,
    "configFile": "lakefile.lean"}],
- "name": "leanlab",
+ "name": "vlab",
  "lakeDir": ".lake",
  "fixedToolchain": false}

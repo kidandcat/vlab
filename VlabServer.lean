@@ -1,25 +1,25 @@
 /-
-`leanlab-server`: HTTP/1.1 in front of one cairn directory.
+`vlab-server`: HTTP/1.1 in front of one cairn directory.
 
-    leanlab-server --data DIR --host 127.0.0.1 --port 8080 --static web/dist
+    vlab-server --data DIR --host 127.0.0.1 --port 8080 --static web/dist
 
 The default host is the loopback. Each note is one synced cairn commit
 before the response is sent.
 -/
 
-import Leanlab.Http
-import Leanlab.Store
+import Vlab.Http
+import Vlab.Store
 import Std.Http.Server
 import Std.Net
 
 open Std.Http.Server
 open Std.Async
 open Std.Net
-open Leanlab.Http
-open Leanlab.Store
+open Vlab.Http
+open Vlab.Store
 
 def usage : String :=
-  "leanlab-server [--data DIR] [--host 127.0.0.1] [--port 8080] [--static web/dist]\n"
+  "vlab-server [--data DIR] [--host 127.0.0.1] [--port 8080] [--static web/dist]\n"
 
 structure Flags where
   data : System.FilePath := "data"
@@ -90,7 +90,7 @@ def main (args : List String) : IO UInt32 := do
     addr := .ofParts a b c d
     port := UInt16.ofNat flags.port
   }
-  IO.println s!"leanlab-server toolchain v{toolchain} data={flags.data} static={flags.static} assets={static.files.length}"
+  IO.println s!"vlab-server toolchain v{toolchain} data={flags.data} static={flags.static} assets={static.files.length}"
   IO.println s!"boots={store.boots}"
   let server ← (Std.Http.Server.serve addr (handler app) config).block
   match server.localAddr with

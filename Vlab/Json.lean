@@ -7,7 +7,7 @@ Strings may contain UTF-8 and the escapes `"`, `\`, `/`, `b` is rejected,
 The encoder escapes controls as `\u00XX`. This is not a general JSON library.
 -/
 
-namespace Leanlab.Json
+namespace Vlab.Json
 
 def escape (s : String) : String := Id.run do
   let mut out := ""
@@ -109,4 +109,4 @@ def parseTextField (s : String) : Except String String := do
       | _ => throw "expected :"
   | _ => throw "expected object"
 
-end Leanlab.Json
+end Vlab.Json

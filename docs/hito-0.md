@@ -1,14 +1,14 @@
 # Hito 0 — esqueleto
 
-Informe de lo que hay en este árbol: un binario `leanlab-server`, un directorio cairn y un front uvl. No hay laboratorio de funciones ni sandbox Wasm. Eso es el hito 1 y el hito 2.
+Informe de lo que hay en este árbol: un binario `vlab-server`, un directorio cairn y un front uvl. El laboratorio de funciones es el hito 1. El sandbox Wasm verificado es el hito 3 y el foco del proyecto. No hay un mini SO RISC-V.
 
 ## Cómo está hecho
 
-El listener es `Std.Http.Server` de Lean 4.35.0 (`Std.Async` y `Std.Internal.UV` por debajo). Se probó un servidor mínimo, aparte de leanlab, antes de apoyar el diseño en él: `GET`, `POST` con cuerpo, dos peticiones en la misma conexión (keep-alive) y un cuerpo `Transfer-Encoding: chunked`. Las cuatro respondieron `HTTP/1.1 200` con el cuerpo esperado. No hizo falta un shim en C.
+El listener es `Std.Http.Server` de Lean 4.35.0 (`Std.Async` y `Std.Internal.UV` por debajo). Se probó un servidor mínimo, aparte de vlab, antes de apoyar el diseño en él: `GET`, `POST` con cuerpo, dos peticiones en la misma conexión (keep-alive) y un cuerpo `Transfer-Encoding: chunked`. Las cuatro respondieron `HTTP/1.1 200` con el cuerpo esperado. No hizo falta un shim en C.
 
 cairn entra como dependencia Lake en `543684716dde412bb803702efdf6e6406f435c9d`. `ShardSet.openFiles` abre `dir/shard-0.cairn` con `Epoch.single`. Las notas son la colección `notes`. El contador de arranques es la clave `meta:boots`. Un commit se responde solo después del `sync` de ese shard.
 
-uvl entra en `ff2f323df25f2e260c19a28d220c3bf507b033df`. `web/build.sh` sigue el de uvl: runtime de Lean e `Init` a Wasm con Emscripten 6.0.12, y los `.c` del módulo `LeanlabWeb.App` y de los módulos de uvl que importa. El shell de navegador (`web_shell.c`, `lean_stubs.c`, `uvl-web.js`) se toma de esa revisión de uvl; no está copiado al repositorio. El servidor solo entrega los cuatro ficheros de la lista blanca (`index.html`, `uvl.js`, `uvl.wasm`, `uvl-web.js`). No hay unión de rutas, así que una petición no sale de esa lista.
+uvl entra en `ff2f323df25f2e260c19a28d220c3bf507b033df`. `web/build.sh` sigue el de uvl: runtime de Lean e `Init` a Wasm con Emscripten 6.0.12, y los `.c` del módulo `VlabWeb.App` y de los módulos de uvl que importa. El shell de navegador (`web_shell.c`, `lean_stubs.c`, `uvl-web.js`) se toma de esa revisión de uvl; no está copiado al repositorio. El servidor solo entrega los cuatro ficheros de la lista blanca (`index.html`, `uvl.js`, `uvl.wasm`, `uvl-web.js`). No hay unión de rutas, así que una petición no sale de esa lista.
 
 El host por defecto es `127.0.0.1`. El cuerpo HTTP máximo es 64 KiB. El texto de una nota, 4000 caracteres. No hay límite de tasa: eso queda para el hito 1. Decisión conservadora, y queda escrita aquí.
 
@@ -16,7 +16,7 @@ El host por defecto es `127.0.0.1`. El cuerpo HTTP máximo es 64 KiB. El texto d
 
 En esta máquina (4 vCPU, Intel Xeon a 2400 MHz, ext4 en `/dev/vdc`):
 
-1. `lake test` imprime `leanlab tests ok`. Ahí entran el parser del cuerpo `{"text":...}`, las rutas (incluida `..`), el id en hexadecimal en los dos extremos (`0` y `2^48-1` / `2^80-1`) y un directorio cairn real: se escribe una nota, se cierra, se vuelve a abrir, la nota sigue y el contador de arranques pasa de 1 a 2. Una nota vacía no se guarda.
+1. `lake test` imprime `vlab tests ok`. Ahí entran el parser del cuerpo `{"text":...}`, las rutas (incluida `..`), el id en hexadecimal en los dos extremos (`0` y `2^48-1` / `2^80-1`) y un directorio cairn real: se escribe una nota, se cierra, se vuelve a abrir, la nota sigue y el contador de arranques pasa de 1 a 2. Una nota vacía no se guarda.
 2. `bash scripts/e2e.sh` levanta el binario, hace `POST` y `GET`, keep-alive de dos `GET /health`, un `POST` con cuerpo fragmentado, mata el proceso y lo vuelve a abrir sobre el mismo directorio. La nota sigue. `boots` vale 2. Imprimió `e2e ok boots=2 notes=2`. Sin `web/dist`, `GET /` responde 200 en texto plano diciendo que falta el front. Un JSON a medias responde 400. `POST /` responde 405.
 3. El front, cuando `web/build.sh` termina: `node web/smoke-node.cjs` (un frame, el árbol de accesibilidad, un clic en el botón) y `REQUIRE_FRONT=1 bash scripts/e2e.sh` (el Wasm servido empieza por `\0asm`).
 
@@ -24,7 +24,7 @@ El `Dockerfile` no se ha construido: en esta máquina no hay Docker. El fichero 
 
 ## Demostrado y solo probado
 
-Nada de este repositorio es un teorema del servidor. No hay `sorry` en el código de leanlab. Tampoco hay una prueba de que el parser, el id o las rutas sean correctos para toda entrada: eso está ejecutado en `lake test` sobre los casos de arriba.
+Nada de este repositorio es un teorema del servidor. No hay `sorry` en el código de vlab. Tampoco hay una prueba de que el parser, el id o las rutas sean correctos para toda entrada: eso está ejecutado en `lake test` sobre los casos de arriba.
 
 De cairn se usa lo ya demostrado allí (el pliegue de un lote, la colección con compare-and-set, el prefijo de un corte de fichero bien formado, el `sync` como barrera). Esos teoremas no hablan de este proceso HTTP ni de que `IO.Ref` publique el `View` de forma atómica. El modelo de fallo sigue siendo el de cairn: un prefijo de un fichero bien formado, no basura arbitraria, y un disco que mienta en el flush queda fuera.
 
@@ -50,4 +50,4 @@ El módulo del front, en esta pasada, pesa 2,1 MiB (`web/dist/uvl.wasm`). `node 
 
 `web/build.sh` en caliente (el runtime de Lean e `Init` ya compilados en `.lake/build/wasm`) tardó 16 s. La primera pasada, sin esa caché, no se cronometró aparte: compiló el runtime, los 653 módulos de `Init` y la app, y terminó en esta misma máquina. En CI esa caché se guarda; la primera vez no está.
 
-Cuatro símbolos de elaborador (`initialize_Lean`, `initialize_Std_Tactic_BVDecide` y dos de `Lean.Parser`) quedan como stubs que abortan si se llaman. El inicializador de `LeanlabWeb.App` no es uno de ellos: un primer enlace lo había sustituido por error (el patrón `initialize_Lean` también casaba con `Leanlab`) y el módulo arrancaba con una excepción de Wasm. El script ya no trata `initialize_leanlab_` como código de compilación. Eso se vio al ejecutar el smoke, no solo al enlazar.
+Cuatro símbolos de elaborador (`initialize_Lean`, `initialize_Std_Tactic_BVDecide` y dos de `Lean.Parser`) quedan como stubs que abortan si se llaman. El inicializador de `VlabWeb.App` no es uno de ellos. Cuando el paquete aún se llamaba leanlab, un primer enlace sustituyó `initialize_leanlab_…` por un stub: el patrón `initialize_Lean` también casaba con `Leanlab`, y el módulo lanzaba una excepción de Wasm. El script no trata `initialize_vlab_` como código de compilación. Eso se vio al ejecutar el smoke, no solo al enlazar.

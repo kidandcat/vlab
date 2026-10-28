@@ -6,17 +6,17 @@ This module only decides the response. Static files are a fixed whitelist
 loaded at startup: there is no path join, so a request cannot escape the list.
 -/
 
-import Leanlab.Json
-import Leanlab.Store
+import Vlab.Json
+import Vlab.Store
 import Std.Async
 import Std.Http.Server
 
 open Std.Async
 open Std.Http
 open Std.Http.Server
-open Leanlab.Store
+open Vlab.Store
 
-namespace Leanlab.Http
+namespace Vlab.Http
 
 def maxBodyBytes : UInt64 := 65536
 
@@ -202,7 +202,7 @@ def dispatch (app : App) (method uri body : String) : IO (Status × String × Op
       | some file => return (.ok, "", some (file.contentType, file.bytes))
       | none =>
           if name == "index.html" then
-            return (.ok, "leanlab: el front todavía no está compilado. Ejecuta web/build.sh.\n", none)
+            return (.ok, "vlab: el front todavía no está compilado. Ejecuta web/build.sh.\n", none)
           else
             return (.notFound, errorJson "front asset missing", none)
   | .methodNotAllowed =>
@@ -229,9 +229,9 @@ def handler (app : App) : StatelessHandler :=
   Handler.ofFn (handle app)
 
 def config : Config := {
-  serverName := some (Header.Value.ofString! "leanlab")
+  serverName := some (Header.Value.ofString! "vlab")
   maxBodySize := maxBodyBytes.toNat
   maxConnections := 64
 }
 
-end Leanlab.Http
+end Vlab.Http

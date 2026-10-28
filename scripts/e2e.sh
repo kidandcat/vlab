@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# End-to-end check of leanlab-server: cairn roundtrip across a restart,
+# End-to-end check of vlab-server: cairn roundtrip across a restart,
 # HTTP/1.1 keep-alive, a chunked body, and (when REQUIRE_FRONT=1) the wasm assets.
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-BIN=${BIN:-$ROOT/.lake/build/bin/leanlab-server}
+BIN=${BIN:-$ROOT/.lake/build/bin/vlab-server}
 DATA=$(mktemp -d)
 PORT=${PORT:-18080}
 STATIC=${STATIC:-$ROOT/web/dist}
