@@ -21,6 +21,8 @@ jobs:
           test: true
       - name: HTTP and cairn end to end
         run: bash scripts/e2e.sh
+      - name: Kernel axioms of the sandbox theorems
+        run: bash scripts/check-axioms.sh
 
   web:
     runs-on: ubuntu-latest

@@ -5,12 +5,14 @@ zero host-call count. The virtual directory survives across executions of
 the same sandbox and disappears on destroy. The cairn audit does not.
 -/
 
+import Vlab.Sandbox.Cited
 import Vlab.Sandbox.Host
 import Vlab.Store
 import Vlab.Wasm.Ast
 import Vlab.Wasm.Binary
 import Vlab.Wasm.Eval
 
+open Vlab.Sandbox.Cited
 open Vlab.Sandbox.Host
 open Vlab.Wasm
 open Vlab.Wasm.Binary
@@ -174,6 +176,23 @@ private def trapName : Trap → String
   | .escape => "escape"
   | .badModule => "badModule"
 
+def trapLine (t : Trap) : String :=
+  match t with
+  | .outOfFuel => withTheorem "trap outOfFuel" .evalList_zero
+  | .bounds => withTheorem "trap bounds" .load_inRange
+  | .escape => withTheorem "trap escape" .normalize_safe
+  | other => "trap " ++ trapName other
+
+def haltState : Halt → St
+  | .ok st | .ret st | .trap _ st | .br _ st => st
+
+/-- Host attempts, then the trap itself when the run stopped. -/
+def haltAudit (h : Halt) : List String :=
+  let lines := (haltState h).host.audit.reverse
+  match h with
+  | .trap t _ => lines ++ [trapLine t]
+  | _ => lines
+
 private def jsonString (s : String) : String :=
   let s := s.replace "\"" "\\\""
   let s := s.replace "\n" "\\n"
@@ -186,11 +205,11 @@ def summarize (h : Halt) : String :=
       | .i32 n :: _ => toString n.toNat
       | .i64 n :: _ => toString n.toNat
       | _ => ""
-    let lines := "\n".intercalate st.host.audit.reverse
+    let lines := "\n".intercalate (haltAudit h)
     "{\"trap\":null,\"value\":\"" ++ v ++ "\",\"calls\":" ++ toString st.host.calls ++
       ",\"audit\":" ++ jsonString lines ++ "}"
   | .trap t st =>
-    let lines := "\n".intercalate st.host.audit.reverse
+    let lines := "\n".intercalate (haltAudit h)
     "{\"trap\":\"" ++ trapName t ++ "\",\"value\":\"\",\"calls\":" ++ toString st.host.calls ++
       ",\"audit\":" ++ jsonString lines ++ "}"
   | .br _ st =>

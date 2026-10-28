@@ -158,8 +158,12 @@ st, loop = call("POST", f"/api/sandboxes/{b}/exec", "example loop")
 assert st == 200 and "outOfFuel" in loop, loop
 st, host = call("POST", f"/api/sandboxes/{b}/exec", "example host")
 assert st == 200 and "deny fs_read" in host, host
+st, audit_a = call("GET", f"/api/sandboxes/{a}/audit")
+assert st == 200 and "trap bounds" in audit_a and "load?_inRange" in audit_a, audit_a
 st, audit = call("GET", f"/api/sandboxes/{b}/audit")
-assert st == 200 and "deny fs_read" in audit and "perform_allow_fsRead" in audit, audit
+assert st == 200 and "deny fs_read" in audit and "fsReadOk_grant" in audit, audit
+assert "trap outOfFuel" in audit and "evalList_zero" in audit, audit
+assert "perform_allow" not in audit and "perform_allow" not in audit_a
 st, _ = call("DELETE", f"/api/sandboxes/{a}")
 assert st == 200
 st, again = call("POST", f"/api/sandboxes/{a}/exec", "example add")
