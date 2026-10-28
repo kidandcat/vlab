@@ -7,6 +7,7 @@ loaded at startup: there is no path join, so a request cannot escape the list.
 -/
 
 import Vlab.Json
+import Vlab.Sandbox.Service
 import Vlab.Store
 import Std.Async
 import Std.Http.Server
@@ -14,6 +15,7 @@ import Std.Http.Server
 open Std.Async
 open Std.Http
 open Std.Http.Server
+open Vlab.Sandbox.Service
 open Vlab.Store
 
 namespace Vlab.Http
@@ -29,6 +31,11 @@ inductive Route where
   | listNotes
   | createNote
   | getNote (id : String)
+  | createSandbox
+  | getSandbox (id : String)
+  | execSandbox (id : String)
+  | destroySandbox (id : String)
+  | auditSandbox (id : String)
   | static (name : String)
   | methodNotAllowed
   | notFound
@@ -51,6 +58,11 @@ def classify (method path : String) : Route :=
   | "GET", ["api", "notes"] => .listNotes
   | "POST", ["api", "notes"] => .createNote
   | "GET", ["api", "notes", id] => .getNote id
+  | "POST", ["api", "sandboxes"] => .createSandbox
+  | "GET", ["api", "sandboxes", id] => .getSandbox id
+  | "POST", ["api", "sandboxes", id, "exec"] => .execSandbox id
+  | "DELETE", ["api", "sandboxes", id] => .destroySandbox id
+  | "GET", ["api", "sandboxes", id, "audit"] => .auditSandbox id
   | "POST", ["api", "notes", _] => .methodNotAllowed
   | "POST", [] => .methodNotAllowed
   | "POST", ["health"] => .methodNotAllowed
@@ -156,6 +168,8 @@ def errorJson (msg : String) : String :=
 structure App where
   store : Store
   static : Static
+  boxes : IO.Ref (Array Box)
+  sandboxRoot : System.FilePath
 
 private def json (status : Status) (body : String) : ContextAsync (Response Body.Any) :=
   Response.withStatus status |>.json body
@@ -164,6 +178,98 @@ private def respondBytes (contentType : String) (body : ByteArray) : ContextAsyn
   Response.ok
     |>.header! "Content-Type" contentType
     |>.fromBytes body
+
+def findBox (app : App) (id : String) : IO (Option Box) := do
+  let boxes ← app.boxes.get
+  return boxes.find? fun b => b.id == id && b.alive
+
+def reloadBoxes (store : Store) (root : System.FilePath) : IO (Array Box) := do
+  if !(← root.pathExists) then return #[]
+  let entries ← root.readDir
+  let mut out : Array Box := #[]
+  for e in entries do
+    let id := e.fileName
+    if (← store.shards.getStr s!"alive:{id}") == some "1" then
+      match ← store.shards.getStr s!"spec:{id}" with
+      | some text =>
+        match parseSpec text with
+        | .ok spec => out := out.push { id, spec, dir := root / id, alive := true }
+        | .error _ => pure ()
+      | none => pure ()
+  return out
+
+def createSandbox (app : App) (body : String) : IO (Status × String) := do
+  let spec ←
+    match parseSpec body with
+    | .ok s => pure s
+    | .error e => return (.badRequest, errorJson e)
+  let alive := (← app.boxes.get).filter (·.alive)
+  if alive.size ≥ maxLive then
+    return (.badRequest, errorJson "too many sandboxes")
+  let id ← app.store.ids.next
+  let hex := toHex id
+  let dir := app.sandboxRoot / hex
+  IO.FS.createDirAll dir
+  let box : Box := { id := hex, spec, dir, alive := true }
+  app.boxes.modify (·.push box)
+  app.store.shards.putStr s!"spec:{hex}" body
+  app.store.shards.putStr s!"alive:{hex}" "1"
+  let _ ← Cairn.collInsert app.store.shards "sandboxes" id (.str (boxJson box))
+  return (.ok, boxJson box)
+
+def execSandbox (app : App) (id body : String) : IO (Status × String) := do
+  let some box ← findBox app id | return (.notFound, errorJson "not found")
+  let bytes ←
+    match parseExec body with
+    | .ok b => pure b
+    | .error e => return (.badRequest, errorJson e)
+  let vfs ← loadVfs box.dir
+  let entropy ←
+    if box.spec.random then
+      (·.data) <$> IO.getRandomBytes 256
+    else
+      pure (#[] : Array UInt8)
+  let clock ←
+    if box.spec.clock then pure (UInt64.ofNat (← nowMillis)) else pure 0
+  let env : Vlab.Sandbox.Host.HostEnv := {
+    grants := box.spec.grants
+    vfs
+    clock
+    entropy
+    entropyAt := 0
+    calls := 0
+    callQuota := box.spec.maxHostCalls
+    vfsQuota
+    audit := []
+  }
+  match runBytes box.spec env bytes with
+  | .error e => return (.badRequest, errorJson e)
+  | .ok halt =>
+    let st := match halt with
+      | .ok st | .ret st | .trap _ st | .br _ st => st
+    saveVfs box.dir st.host.vfs
+    for line in st.host.audit.reverse do
+      let eid ← app.store.ids.next
+      let _ ← Cairn.collInsert app.store.shards (auditName id) eid (.str line)
+    return (.ok, summarize halt)
+
+def destroySandbox (app : App) (id : String) : IO (Status × String) := do
+  let some box ← findBox app id | return (.notFound, errorJson "not found")
+  app.boxes.modify fun boxes =>
+    boxes.map fun b => if b.id == id then { b with alive := false } else b
+  app.store.shards.putStr s!"alive:{id}" "0"
+  if ← box.dir.pathExists then
+    IO.FS.removeDirAll box.dir
+  return (.ok, "{\"destroyed\":\"" ++ id ++ "\"}")
+
+def auditSandbox (app : App) (id : String) : IO (Status × String) := do
+  let (rows, _) ← Cairn.collList app.store.shards (auditName id) none 50
+  let mut lines : List String := []
+  for row in rows do
+    match row.val with
+    | .str s => lines := lines ++ [Vlab.Json.str s]
+    | _ => pure ()
+  return (.ok, "{\"audit\":[" ++ ", ".intercalate lines ++ "]}")
 
 def dispatch (app : App) (method uri body : String) : IO (Status × String × Option (String × ByteArray)) := do
   match classify method uri with
@@ -190,6 +296,22 @@ def dispatch (app : App) (method uri body : String) : IO (Status × String × Op
             return (.ok, noteJson note (some (t1 - t0)), none)
           catch e =>
             return (.badRequest, errorJson (toString e), none)
+  | .createSandbox =>
+      let (st, payload) ← createSandbox app body
+      return (st, payload, none)
+  | .getSandbox id =>
+      match ← findBox app id with
+      | some box => return (.ok, boxJson box, none)
+      | none => return (.notFound, errorJson "not found", none)
+  | .execSandbox id =>
+      let (st, payload) ← execSandbox app id body
+      return (st, payload, none)
+  | .destroySandbox id =>
+      let (st, payload) ← destroySandbox app id
+      return (st, payload, none)
+  | .auditSandbox id =>
+      let (st, payload) ← auditSandbox app id
+      return (st, payload, none)
   | .getNote id =>
       match ofHex? id with
       | none => return (.badRequest, errorJson "bad id", none)

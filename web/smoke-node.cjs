@@ -21,7 +21,7 @@ function fail(msg) {
   if (stepped !== 1) fail(`expected a first frame, got ${stepped}`);
   const before = m.UTF8ToString(m._uvl_semantics());
   if (!before.includes('vlab')) fail(`semantics missing vlab:\n${before}`);
-  if (!before.includes('pings 0')) fail(`semantics missing pings 0:\n${before}`);
+  if (!before.includes('evalList_zero')) fail(`semantics missing theorem:\n${before}`);
   const center = m._uvl_target_center(0);
   if (!center) fail('no tap target');
   const x = m.HEAPF64[center / 8];
@@ -34,7 +34,7 @@ function fail(msg) {
   m._uvl_step(ev, 2, 16);
   m._free(ev);
   const after = m.UTF8ToString(m._uvl_semantics());
-  if (!after.includes('pings 1')) fail(`click did not increment:\n${after}`);
+  if (!after.includes('bounds')) fail(`oob click did not show bounds:\n${after}`);
   const pixels = m._uvl_render_cpu();
   const w = m._uvl_width();
   const h = m._uvl_height();

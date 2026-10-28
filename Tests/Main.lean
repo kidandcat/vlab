@@ -1,3 +1,4 @@
+import Tests.WasmRun
 import Vlab.Http
 import Vlab.Json
 import Vlab.Store
@@ -89,6 +90,7 @@ def main : IO UInt32 := do
     testRoutes
     testIds
     testStore
+    testWasm
     IO.println "vlab tests ok"
     return 0
   catch e =>

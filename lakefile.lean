@@ -25,6 +25,9 @@ lean_exe «vlab-server» where
 lean_lib VlabWeb where
   globs := #[.one `VlabWeb.App]
 
+lean_lib Tests where
+  globs := #[.one `Tests.WasmRun]
+
 @[test_driver]
 lean_exe «vlab-tests» where
   root := `Tests.Main

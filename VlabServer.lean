@@ -85,7 +85,10 @@ def main (args : List String) : IO UInt32 := do
       return 1
   let store ← openAt flags.data
   let static ← Static.load flags.static
-  let app : App := { store, static }
+  let sandboxRoot := flags.data / "sandboxes"
+  IO.FS.createDirAll sandboxRoot
+  let boxes ← IO.mkRef (← reloadBoxes store sandboxRoot)
+  let app : App := { store, static, boxes, sandboxRoot }
   let addr : SocketAddress := .v4 {
     addr := .ofParts a b c d
     port := UInt16.ofNat flags.port
