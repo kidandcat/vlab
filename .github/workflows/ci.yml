@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leanprover/lean-action@v1
+        with:
+          test: true
+      - name: HTTP and cairn end to end
+        run: bash scripts/e2e.sh
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      EMSDK_VERSION: 6.0.12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leanprover/lean-action@v1
+        with:
+          build: false
+          test: false
+      - name: Install Emscripten
+        run: |
+          git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$HOME/emsdk"
+          "$HOME/emsdk/emsdk" install "$EMSDK_VERSION"
+          "$HOME/emsdk/emsdk" activate "$EMSDK_VERSION"
+      - name: Cache the wasm Lean runtime and Init
+        uses: actions/cache@v4
+        with:
+          path: .lake/build/wasm
+          key: wasm-${{ hashFiles('lean-toolchain', 'web/build.sh') }}-${{ env.EMSDK_VERSION }}
+      - name: Build the browser UI
+        run: |
+          source "$HOME/emsdk/emsdk_env.sh"
+          web/build.sh
+      - name: Build the native server
+        run: lake build vlab-server
+      - name: Node smoke and HTTP serving of the wasm
+        run: |
+          node web/smoke-node.cjs web/dist
+          REQUIRE_FRONT=1 bash scripts/e2e.sh
