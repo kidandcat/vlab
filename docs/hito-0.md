@@ -46,7 +46,7 @@ health wallUs 729
 
 El commit de una nota corta quedó entre unos 0,25 ms y unos 0,97 ms. La primera petición vista desde el cliente fue más lenta (unos 18 ms); las siguientes, entre 1,1 ms y 2,2 ms. `GET /health` recorre la colección: con pocas notas, unos 0,7 ms vistos desde el cliente. No es una cota. Un disco que espere al medio estable será más lento que este ext4.
 
-El módulo del front, en esta pasada, pesa 2,1 MiB (`web/dist/uvl.wasm`). `node web/smoke-node.cjs` imprimió `wasm smoke ok 480x360 ink=37889`: un frame de 480×360 y un clic en el botón que pasa el contador de `pings 0` a `pings 1`. Con el front servido, `REQUIRE_FRONT=1 bash scripts/e2e.sh` comprobó que `GET /uvl.wasm` empieza por la magia `\0asm` y que `GET /` es el `index.html`.
+El módulo del front pesa 2,1 MiB (`web/dist/uvl.wasm`). Tras pasar el paquete a `vlab`, `node web/smoke-node.cjs` imprimió `wasm smoke ok 480x360 ink=37757`: un frame de 480×360 y un clic en el botón que pasa el contador de `pings 0` a `pings 1`. Con el front servido, `REQUIRE_FRONT=1 bash scripts/e2e.sh` comprobó que `GET /uvl.wasm` empieza por la magia `\0asm` y que `GET /` es el `index.html`.
 
 `web/build.sh` en caliente (el runtime de Lean e `Init` ya compilados en `.lake/build/wasm`) tardó 16 s. La primera pasada, sin esa caché, no se cronometró aparte: compiló el runtime, los 653 módulos de `Init` y la app, y terminó en esta misma máquina. En CI esa caché se guarda; la primera vez no está.
 
