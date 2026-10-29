@@ -9,6 +9,7 @@ loaded at startup: there is no path join, so a request cannot escape the list.
 import Vlab.Json
 import Vlab.Sandbox.Service
 import Vlab.Store
+import Vlab.Version
 import Std.Async
 import Std.Http.Server
 
@@ -276,7 +277,8 @@ def dispatch (app : App) (method uri body : String) : IO (Status × String × Op
   | .health =>
       let notes ← app.store.noteCount
       let payload :=
-        "{\"ok\":true,\"toolchain\":" ++ Json.str toolchain ++
+        "{\"ok\":true,\"version\":" ++ Json.str Vlab.version ++
+        ",\"toolchain\":" ++ Json.str toolchain ++
         ",\"boots\":" ++ toString app.store.boots ++
         ",\"notes\":" ++ toString notes ++
         ",\"http\":\"std\"}"
@@ -324,7 +326,7 @@ def dispatch (app : App) (method uri body : String) : IO (Status × String × Op
       | some file => return (.ok, "", some (file.contentType, file.bytes))
       | none =>
           if name == "index.html" then
-            return (.ok, "vlab: el front todavía no está compilado. Ejecuta web/build.sh.\n", none)
+            return (.ok, "vlab: the front is not built yet. Run web/build.sh.\n", none)
           else
             return (.notFound, errorJson "front asset missing", none)
   | .methodNotAllowed =>

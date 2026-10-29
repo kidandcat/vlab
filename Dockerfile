@@ -1,6 +1,6 @@
 # Image of the native server. The wasm front is not built here: compile it
 # with web/build.sh and it will be copied in if web/dist is present.
-# This image is not a production deploy. See docs/despliegue.md.
+# This image is not a production deploy. See docs/deployment.md.
 FROM ubuntu:24.04
 
 RUN apt-get update \

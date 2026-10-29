@@ -9,6 +9,7 @@ before the response is sent.
 
 import Vlab.Http
 import Vlab.Store
+import Vlab.Version
 import Std.Http.Server
 import Std.Net
 
@@ -93,7 +94,7 @@ def main (args : List String) : IO UInt32 := do
     addr := .ofParts a b c d
     port := UInt16.ofNat flags.port
   }
-  IO.println s!"vlab-server toolchain v{toolchain} data={flags.data} static={flags.static} assets={static.files.length}"
+  IO.println s!"vlab-server version={Vlab.version} toolchain v{toolchain} data={flags.data} static={flags.static} assets={static.files.length}"
   IO.println s!"boots={store.boots}"
   let server ← (Std.Http.Server.serve addr (handler app) config).block
   match server.localAddr with

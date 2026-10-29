@@ -2,6 +2,8 @@ import Lake
 open Lake DSL
 
 package vlab where
+  version := v!"0.1.0"
+  license := "MIT"
   leanOptions := #[
     ⟨`autoImplicit, false⟩,
     ⟨`relaxedAutoImplicit, false⟩
