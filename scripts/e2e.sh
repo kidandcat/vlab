@@ -54,12 +54,12 @@ fail() {
 
 start
 HEALTH=$(curl -sf "http://127.0.0.1:$PORT/health") || fail "health"
-python3 -c 'import json,sys; h=json.loads(sys.argv[1]); assert h["ok"] is True and h["boots"]==1 and h["http"]=="std" and h["toolchain"]=="4.35.0", h' "$HEALTH"
+python3 -c 'import json,sys; h=json.loads(sys.argv[1]); assert h["ok"] is True and h["boots"]==1 and h["http"]=="std" and h["toolchain"]=="4.35.0" and h.get("version"), h' "$HEALTH"
 
 NOTE=$(curl -sf -X POST "http://127.0.0.1:$PORT/api/notes" \
   -H 'Content-Type: application/json' \
-  --data '{"text":"hola \"cairn\""}') || fail "post"
-ID=$(python3 -c 'import json,sys; n=json.loads(sys.argv[1]); assert n["text"]=="hola \"cairn\"" and n["version"]==1 and n["tookNs"]>=0; print(n["id"])' "$NOTE")
+  --data '{"text":"hello \"cairn\""}') || fail "post"
+ID=$(python3 -c 'import json,sys; n=json.loads(sys.argv[1]); assert n["text"]=="hello \"cairn\"" and n["version"]==1 and n["tookNs"]>=0; print(n["id"])' "$NOTE")
 
 LIST=$(curl -sf "http://127.0.0.1:$PORT/api/notes") || fail "list"
 python3 -c 'import json,sys; rows=json.loads(sys.argv[1])["notes"]; assert len(rows)==1 and rows[0]["id"]==sys.argv[2]' "$LIST" "$ID"
@@ -131,7 +131,7 @@ start
 HEALTH2=$(curl -sf "http://127.0.0.1:$PORT/health") || fail "health after restart"
 python3 -c 'import json,sys; h=json.loads(sys.argv[1]); assert h["boots"]==2 and h["notes"]==2, h' "$HEALTH2"
 AGAIN=$(curl -sf "http://127.0.0.1:$PORT/api/notes/$ID") || fail "note after restart"
-python3 -c 'import json,sys; assert json.loads(sys.argv[1])["text"]=="hola \"cairn\""' "$AGAIN"
+python3 -c 'import json,sys; assert json.loads(sys.argv[1])["text"]=="hello \"cairn\""' "$AGAIN"
 python3 - <<PY || fail "sandbox"
 import json, urllib.request
 base = "http://127.0.0.1:$PORT"
@@ -185,7 +185,7 @@ def post(text):
         body = json.loads(res.read().decode())
     wall = (time.perf_counter() - t) * 1e6
     return body["tookNs"], wall
-samples = [post(f"muestra {i}") for i in range(5)]
+samples = [post(f"sample {i}") for i in range(5)]
 print("post tookNs " + " ".join(str(a) for a, _ in samples))
 print("post wallUs " + " ".join(str(int(b)) for _, b in samples))
 t = time.perf_counter()

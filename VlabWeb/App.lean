@@ -20,7 +20,7 @@ inductive Msg where
   deriving BEq, Repr, Inhabited
 
 structure Model where
-  line : String := "elige un escape"
+  line : String := "pick an escape"
   deriving Repr
 
 def env (grants : List Cap) : HostEnv := {
@@ -72,17 +72,17 @@ def denyMod : Module := {
 }
 
 def describe : Halt → String
-  | .trap .bounds _ => "trampa bounds · load?_inRange"
-  | .trap .outOfFuel _ => "trampa outOfFuel · evalList_zero"
-  | .trap .escape _ => "trampa escape · normalize_safe"
+  | .trap .bounds _ => "trap bounds · load?_inRange"
+  | .trap .outOfFuel _ => "trap outOfFuel · evalList_zero"
+  | .trap .escape _ => "trap escape · normalize_safe"
   | .ok st | .ret st =>
     match st.host.audit with
     | line :: _ => line
     | [] =>
       match st.stack with
-      | .i32 n :: _ => "valor " ++ toString n.toNat
+      | .i32 n :: _ => "value " ++ toString n.toNat
       | _ => "ok"
-  | .trap _ _ => "trampa"
+  | .trap _ _ => "trap"
   | .br _ _ => "br"
 
 def update : Msg → Model → Model
@@ -98,12 +98,12 @@ def view (m : Model) : UI.Widget Msg := ui! pad 16:
       chip "sandbox"
     card:
       col (gap := 6) (align := .stretch):
-        text "Combustible, memoria, capacidades."
+        text "Fuel, memory, capabilities."
         text m.line
         row (gap := 8):
           button "oob" (onTap := some Msg.oob)
-          button "bucle" (onTap := some Msg.loop)
-          button "denegar" (onTap := some Msg.deny)
+          button "loop" (onTap := some Msg.loop)
+          button "deny" (onTap := some Msg.deny)
     card:
       col (gap := 4) (align := .stretch):
         text "load?_inRange"

@@ -12,15 +12,17 @@ private def expect (name : String) (ok : Bool) : IO Unit := do
     throw (IO.userError name)
 
 private def testJson : IO Unit := do
-  match parseTextField "{\"text\":\"hola\"}" with
-  | .ok "hola" => pure ()
+  match parseTextField "{\"text\":\"hello\"}" with
+  | .ok "hello" => pure ()
   | other => throw (IO.userError s!"plain {repr other}")
   match parseTextField "  { \"text\" : \"a\\\"b\\\\c\\n\" }\n" with
   | .ok "a\"b\\c\n" => pure ()
   | other => throw (IO.userError s!"escapes {repr other}")
+  -- unicode-fixture: U+00E1 LATIN SMALL LETTER A WITH ACUTE. Not user-facing copy.
   match parseTextField "{\"text\":\"á\"}" with
   | .ok "á" => pure ()
   | other => throw (IO.userError s!"utf8 {repr other}")
+  -- unicode-fixture: JSON \u escape of U+00E1. Not user-facing copy.
   match parseTextField "{\"text\":\"\\u00e1\"}" with
   | .ok "á" => pure ()
   | other => throw (IO.userError s!"unicode {repr other}")
@@ -28,6 +30,7 @@ private def testJson : IO Unit := do
   | .error _ => pure ()
   | .ok v => throw (IO.userError s!"accepted {v}")
   expect "escape quote" ((str "a\"b") == "\"a\\\"b\"")
+  -- unicode-fixture: U+00ED inside the round-trip sample, plus a newline and quotes. Not user-facing copy.
   expect "roundtrip escape" <|
     match parseTextField ("{\"text\":" ++ str "línea\n\"x\"" ++ "}") with
     | .ok "línea\n\"x\"" => true
@@ -58,18 +61,18 @@ private def testStore : IO Unit := do
   try
     let s ← openAt dir
     expect "boot 1" (s.boots == 1)
-    let n ← s.addNote "hola \"mundo\""
+    let n ← s.addNote "hello \"world\""
     let listed ← s.listNotes 10
     expect "one note" (listed.length == 1)
-    expect "text" (listed.head?.map (·.text) == some "hola \"mundo\"")
+    expect "text" (listed.head?.map (·.text) == some "hello \"world\"")
     let again ← s.getNote n.id
     expect "get" (again.map (·.version) == some n.version)
     s.close
     let s2 ← openAt dir
     expect "boot 2" (s2.boots == 2)
     let listed2 ← s2.listNotes 10
-    expect "persisted" (listed2.map (·.text) == ["hola \"mundo\""])
-    let n2 ← s2.addNote "segunda"
+    expect "persisted" (listed2.map (·.text) == ["hello \"world\""])
+    let n2 ← s2.addNote "second"
     expect "order" ((toHex n.id).toList < (toHex n2.id).toList)
     try
       discard <| s2.addNote ""
